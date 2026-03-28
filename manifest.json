@@ -1,0 +1,10 @@
+{
+  "id": "folder-git-sync-secure",
+  "name": "Folder Git Sync Secure",
+  "version": "1.0.0",
+  "minAppVersion": "1.5.12",
+  "description": "Desktop-only SSH Git sync for selected Obsidian vault folders.",
+  "author": "Ribbons Digital",
+  "authorUrl": "https://ribbons.digital",
+  "isDesktopOnly": true
+}

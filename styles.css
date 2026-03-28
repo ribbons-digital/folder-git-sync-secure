@@ -1,0 +1,70 @@
+.fgss-status-view,
+.fgss-diagnostics-view {
+  padding: 1rem;
+}
+
+.fgss-status-card,
+.fgss-setting-section,
+.fgss-warning-block {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(
+    180deg,
+    var(--background-secondary) 0%,
+    var(--background-primary-alt) 100%
+  );
+}
+
+.fgss-status-meta,
+.fgss-review-summary {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.fgss-status-actions,
+.fgss-modal-actions,
+.fgss-review-actions {
+  margin-top: 0.75rem;
+}
+
+.fgss-status-error {
+  color: var(--text-error);
+  font-weight: 600;
+}
+
+.fgss-review-modal .modal-content {
+  max-width: 980px;
+}
+
+.fgss-files-section {
+  margin-top: 1rem;
+}
+
+.fgss-review-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fgss-review-table th,
+.fgss-review-table td {
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding: 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.fgss-review-options {
+  margin-top: 1rem;
+}
+
+.fgss-gitignore-template,
+.fgss-diagnostics-view pre {
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  white-space: pre-wrap;
+}
