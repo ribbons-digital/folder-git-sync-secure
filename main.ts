@@ -13,6 +13,7 @@ import {
   GitService
 } from "./src/git/gitService.ts";
 import { AutoSyncManager } from "./src/sync/autoSync.ts";
+import { PeriodicPullManager } from "./src/sync/periodicPull.ts";
 import { SyncManager } from "./src/sync/syncManager.ts";
 import type {
   FolderMappingPatch,
@@ -48,6 +49,7 @@ export default class FolderGitSyncSecurePlugin extends Plugin {
   private logger!: PluginLogger;
   private gitService!: GitService;
   private syncManager!: SyncManager;
+  private periodicPullManager!: PeriodicPullManager;
 
   public override async onload(): Promise<void> {
     await this.loadSettings();
@@ -66,6 +68,22 @@ export default class FolderGitSyncSecurePlugin extends Plugin {
       authDetector,
       this.logger.child("git-service")
     );
+
+    this.periodicPullManager = new PeriodicPullManager(
+      this.gitService,
+      this.syncManager,
+      {
+        getSettings: () => this.settings,
+        updateMappingState: async (mappingId, patch) => {
+          await this.updateMapping(mappingId, patch);
+        },
+        refreshViews: async () => {
+          await this.refreshViews();
+        }
+      }
+    );
+    this.periodicPullManager.start();
+    this.addChild(this.periodicPullManager);
 
     const autoSync = new AutoSyncManager(
       this.app,
@@ -124,6 +142,53 @@ export default class FolderGitSyncSecurePlugin extends Plugin {
   public async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
     await this.refreshViews();
+  }
+
+  public async updatePeriodicPullEnabled(
+    enabled: boolean
+  ): Promise<void> {
+    const previousEnabled = this.settings.periodicPullEnabled;
+    this.settings.periodicPullEnabled = enabled;
+    await this.saveSettings();
+
+    try {
+      await this.periodicPullManager.reconfigure();
+    } catch (error) {
+      this.settings.periodicPullEnabled = previousEnabled;
+
+      try {
+        await this.saveSettings();
+      } catch (rollbackError) {
+        throw rollbackError;
+      }
+
+      throw error;
+    }
+  }
+
+  public async updatePeriodicPullIntervalSeconds(
+    seconds: number
+  ): Promise<void> {
+    const previousIntervalSeconds = this.settings.periodicPullIntervalSeconds;
+    const normalizedIntervalSeconds =
+      Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+
+    this.settings.periodicPullIntervalSeconds = normalizedIntervalSeconds;
+    await this.saveSettings();
+
+    try {
+      await this.periodicPullManager.reconfigure();
+    } catch (error) {
+      this.settings.periodicPullIntervalSeconds = previousIntervalSeconds;
+
+      try {
+        await this.saveSettings();
+      } catch (rollbackError) {
+        throw rollbackError;
+      }
+
+      throw error;
+    }
   }
 
   public async updateMapping(
