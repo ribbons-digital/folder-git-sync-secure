@@ -30,6 +30,8 @@ export interface FolderGitSyncSettings {
   defaultAutoSyncDebounceMs: number;
   defaultBlockedFilePatterns: string[];
   defaultGitIgnoreTemplate: string;
+  periodicPullEnabled: boolean;
+  periodicPullIntervalSeconds: number;
   logLevel: LogLevel;
 }
 

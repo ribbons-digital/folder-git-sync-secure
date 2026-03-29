@@ -15,6 +15,16 @@ export const DEFAULT_BRANCH = "main";
 export const DEFAULT_COMMIT_MESSAGE_TEMPLATE =
   "vault sync: {{folderName}} {{timestamp}}";
 
+function normalizePeriodicPullIntervalSeconds(
+  value: unknown
+): number {
+  const fallback = DEFAULT_SETTINGS.periodicPullIntervalSeconds;
+  const normalized =
+    typeof value === "number" && Number.isFinite(value) ? value : fallback;
+
+  return Math.max(0, Math.floor(normalized));
+}
+
 function generateMappingId(): string {
   const browserCrypto = globalThis.crypto;
   if (browserCrypto && typeof browserCrypto.randomUUID === "function") {
@@ -39,6 +49,8 @@ export const DEFAULT_SETTINGS: FolderGitSyncSettings = {
   defaultAutoSyncDebounceMs: 15000,
   defaultBlockedFilePatterns: [...DEFAULT_BLOCKED_FILE_PATTERNS],
   defaultGitIgnoreTemplate: RECOMMENDED_GITIGNORE_TEMPLATE,
+  periodicPullEnabled: false,
+  periodicPullIntervalSeconds: 86400,
   logLevel: "warn"
 };
 
@@ -78,6 +90,10 @@ export function normalizeSettings(
     defaultGitIgnoreTemplate:
       input?.defaultGitIgnoreTemplate ??
       DEFAULT_SETTINGS.defaultGitIgnoreTemplate,
+    periodicPullEnabled: input?.periodicPullEnabled === true,
+    periodicPullIntervalSeconds: normalizePeriodicPullIntervalSeconds(
+      input?.periodicPullIntervalSeconds
+    ),
     logLevel: input?.logLevel ?? DEFAULT_SETTINGS.logLevel
   };
 }
