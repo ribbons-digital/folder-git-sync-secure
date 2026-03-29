@@ -41,13 +41,11 @@ export class PeriodicPullManager extends Component {
     const settings = this.callbacks.getSettings();
     await this.engine.applyConfig(
       {
-        enabled: settings.periodicPullEnabled,
+        enabled:
+          settings.periodicPullEnabled && settings.periodicPullIntervalSeconds > 0,
         intervalSeconds: settings.periodicPullIntervalSeconds
       },
-      {
-        immediate:
-          settings.periodicPullEnabled && settings.periodicPullIntervalSeconds > 0
-      }
+      { immediate: true }
     );
   }
 
