@@ -16,6 +16,8 @@ interface PeriodicPullCallbacks {
 
 export class PeriodicPullManager extends Component {
   private readonly engine: PeriodicPullEngine;
+  private reconfigureTail: Promise<void> = Promise.resolve();
+  private unloading = false;
 
   public constructor(
     private readonly gitService: GitService,
@@ -28,7 +30,8 @@ export class PeriodicPullManager extends Component {
         await this.runCycle();
       },
       onError: (error) => {
-        void error;
+        const message = toUserMessage(error);
+        console.error(`[PeriodicPullManager] ${message}`, error);
       }
     });
   }
@@ -38,42 +41,86 @@ export class PeriodicPullManager extends Component {
   }
 
   public async reconfigure(): Promise<void> {
-    const settings = this.callbacks.getSettings();
-    await this.engine.applyConfig(
-      {
-        enabled:
-          settings.periodicPullEnabled && settings.periodicPullIntervalSeconds > 0,
-        intervalSeconds: settings.periodicPullIntervalSeconds
-      },
-      { immediate: true }
-    );
+    this.reconfigureTail = this.reconfigureTail
+      .catch(() => undefined)
+      .then(async () => {
+        if (this.unloading) {
+          return;
+        }
+
+        const settings = this.callbacks.getSettings();
+        await this.engine.applyConfig(
+          {
+            enabled:
+              settings.periodicPullEnabled &&
+              settings.periodicPullIntervalSeconds > 0,
+            intervalSeconds: settings.periodicPullIntervalSeconds
+          },
+          { immediate: true }
+        );
+      });
+
+    await this.reconfigureTail;
   }
 
   public async runCycle(): Promise<void> {
-    const startedAt = new Date().toISOString();
+    if (this.unloading) {
+      return;
+    }
 
-    for (const mapping of this.callbacks.getSettings().mappings) {
+    const mappings = [...this.callbacks.getSettings().mappings];
+
+    for (const mapping of mappings) {
+      if (this.unloading) {
+        return;
+      }
+
       try {
         await this.syncManager.enqueue(mapping, "pull", async () => {
           await this.gitService.pull(mapping);
         });
 
-        await this.callbacks.updateMappingState(mapping.id, {
+        await this.updateMappingState(mapping.id, {
           lastError: undefined,
-          lastSyncTime: startedAt
+          lastSyncTime: new Date().toISOString()
         });
       } catch (error) {
-        await this.callbacks.updateMappingState(mapping.id, {
+        await this.updateMappingState(mapping.id, {
           lastError: toUserMessage(error)
         });
       }
     }
 
-    await this.callbacks.refreshViews();
+    if (!this.unloading) {
+      await this.callbacks.refreshViews();
+    }
   }
 
   public override onunload(): void {
+    this.unloading = true;
     this.engine.stop();
     super.onunload();
+  }
+
+  private async updateMappingState(
+    mappingId: string,
+    patch: FolderMappingPatch
+  ): Promise<void> {
+    if (this.unloading) {
+      return;
+    }
+
+    try {
+      await this.callbacks.updateMappingState(mappingId, patch);
+    } catch (error) {
+      if (this.unloading) {
+        return;
+      }
+
+      console.error(
+        `[PeriodicPullManager] Failed to update periodic pull state for ${mappingId}`,
+        error
+      );
+    }
   }
 }
