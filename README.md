@@ -62,6 +62,7 @@ The plugin never runs Git from the vault root unless the configured mapping is t
 - Detect suspicious secret-like filenames before commit
 - Optional per-folder local Git author override through normal Git config
 - Opt-in auto-sync with debounce, per-repo queueing, and backoff
+- Optional scheduled pull-only for all mappings (default OFF), with immediate pull on startup/config change and recurring pulls at a configurable interval (default 86400 seconds)
 
 ## Build Instructions
 
@@ -164,6 +165,15 @@ Resolve the conflict outside the plugin, complete or abort the merge/rebase, the
 
 Review the flagged files, update `.gitignore` or blocked patterns, and only proceed if you explicitly intend to commit them.
 
+### “Scheduled pull did not run.”
+
+Check all of the following:
+
+- `Enable scheduled pull` is ON in plugin settings
+- `Pull interval (seconds)` is greater than `0` (`0` disables scheduled pull)
+- The mapping has a valid SSH remote and passing diagnostics
+- `Last error` in the status view does not show conflict/dirty/auth failures
+
 ## Known Limitations
 
 - Desktop only
@@ -189,3 +199,5 @@ Manual:
 5. Run `Pull`, `Push`, and `Sync` on a clean repo.
 6. Start a rebase or merge outside the plugin and confirm the plugin blocks sync.
 7. Enable auto-sync with safe mode off and confirm debounced commits and syncs occur one repo at a time.
+8. Enable scheduled pull, restart Obsidian, and confirm a pull attempt occurs on startup.
+9. Set scheduled pull interval to `0` and confirm periodic pulls stop.
