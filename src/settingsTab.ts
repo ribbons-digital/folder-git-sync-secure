@@ -92,6 +92,93 @@ export class FolderGitSyncSecureSettingTab extends PluginSettingTab {
         textarea.inputEl.rows = 4;
       });
 
+    containerEl.createEl("h3", { text: "Scheduled Pull" });
+
+    new Setting(containerEl)
+      .setName("Enable scheduled pull")
+      .setDesc(
+        "Applies to all mappings. Runs pull on startup and again at the configured interval. Interval 0 disables scheduled pull. Separate from auto-sync."
+      )
+      .addToggle((toggle) => {
+        let persistedPeriodicPullEnabled = this.plugin.settings.periodicPullEnabled;
+
+        toggle.setValue(persistedPeriodicPullEnabled).onChange(async (value) => {
+          try {
+            await this.plugin.updatePeriodicPullEnabled(value);
+            persistedPeriodicPullEnabled = value;
+            toggle.setValue(persistedPeriodicPullEnabled);
+          } catch (error) {
+            const message =
+              error instanceof Error
+                ? error.message
+                : "Failed to update scheduled pull setting.";
+            new Notice(message);
+            toggle.setValue(persistedPeriodicPullEnabled);
+          }
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("Pull interval (seconds)")
+      .setDesc(
+        "Applies to all mappings. Pull runs on startup and then every interval. Set 0 to disable. Separate from auto-sync."
+      )
+      .addText((text) => {
+        let persistedPeriodicPullIntervalSeconds =
+          this.plugin.settings.periodicPullIntervalSeconds;
+        let draftPeriodicPullIntervalSeconds = String(
+          persistedPeriodicPullIntervalSeconds
+        );
+
+        const commitPeriodicPullIntervalSeconds = async (): Promise<void> => {
+          const parsed = Number.parseInt(draftPeriodicPullIntervalSeconds, 10);
+
+          if (!Number.isFinite(parsed)) {
+            new Notice("Pull interval must be a valid whole number.");
+            draftPeriodicPullIntervalSeconds = String(
+              persistedPeriodicPullIntervalSeconds
+            );
+            text.setValue(draftPeriodicPullIntervalSeconds);
+            return;
+          }
+
+          try {
+            await this.plugin.updatePeriodicPullIntervalSeconds(parsed);
+            persistedPeriodicPullIntervalSeconds =
+              this.plugin.settings.periodicPullIntervalSeconds;
+            draftPeriodicPullIntervalSeconds = String(
+              persistedPeriodicPullIntervalSeconds
+            );
+            text.setValue(draftPeriodicPullIntervalSeconds);
+          } catch (error) {
+            const message =
+              error instanceof Error
+                ? error.message
+                : "Failed to update scheduled pull interval.";
+            new Notice(message);
+            draftPeriodicPullIntervalSeconds = String(
+              persistedPeriodicPullIntervalSeconds
+            );
+            text.setValue(draftPeriodicPullIntervalSeconds);
+          }
+        };
+
+        text.setValue(draftPeriodicPullIntervalSeconds).onChange((value) => {
+          draftPeriodicPullIntervalSeconds = value;
+        });
+        text.inputEl.addEventListener("blur", () => {
+          void commitPeriodicPullIntervalSeconds();
+        });
+        text.inputEl.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter") {
+            return;
+          }
+
+          event.preventDefault();
+          void commitPeriodicPullIntervalSeconds();
+        });
+      });
+
     new Setting(containerEl)
       .setName("Recommended .gitignore template")
       .setDesc("Copy and adapt this manually inside each repository as needed.")
