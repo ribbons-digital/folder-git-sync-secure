@@ -37,7 +37,12 @@ export class PeriodicPullManager extends Component {
   }
 
   public start(): void {
-    void this.reconfigure();
+    void this.reconfigure().catch((error) => {
+      console.error(
+        "[PeriodicPullManager] Failed to start periodic pull manager",
+        error
+      );
+    });
   }
 
   public async reconfigure(): Promise<void> {
@@ -58,6 +63,10 @@ export class PeriodicPullManager extends Component {
           },
           { immediate: true }
         );
+
+        if (this.unloading) {
+          this.engine.stop();
+        }
       });
 
     await this.reconfigureTail;
